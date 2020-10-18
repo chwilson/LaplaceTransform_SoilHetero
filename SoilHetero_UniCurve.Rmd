@@ -28,7 +28,7 @@ $$\tag{2_b} \int{C\frac{\beta^\alpha}{\Gamma(\alpha)}\lambda^{-\alpha-1}e^{-\fra
 
 Fortunately, this integral has a very simple analytical solution, dropping the cohort constant "C":
 $$\tag{3} (\frac{\beta}{\beta+t})^\alpha$$
-We reparameterize this solution because, while simple, the parameters of the inverse-gamma distribution $\beta$ and $alpha$ do not necessarily have easy intuition. However, we can translate into a parameterization with a mean $\mu$ and a dispersion constant $k$, and rewrite the integral transform in (3). To do this, we first note that the first moment (mean) of an inverse gamma is given by $\frac{\beta}{\alpha-1}$, while the second moment (variance) is $\frac{\beta^2}{(\alpha-1)^2(\alpha-2)}$. The first moment is only defined when $alpha$>1, and the second moment only when $alpha$>2. Thus, for our reparameterization, we will set the restriction that $alpha$ is strictly > 2. We notate the first moment as $\mu$, and retain this parameter. For second moment, note that: 
+We reparameterize this solution because, while simple, the parameters of the inverse-gamma distribution $\beta$ and $alpha$ do not necessarily have easy intuition. However, we can translate into a parameterization with a mean $\mu$ and a dispersion constant $k$, and rewrite the integral transform in (3). To do this, we first note that the first moment (mean) of an inverse gamma is given by $\frac{\beta}{\alpha-1}$, while the second moment (variance) is $\frac{\beta^2}{(\alpha-1)^2(\alpha-2)}$. The first moment is only defined when $alpha$>1, and the second moment only when $alpha$>2. Thus, for our reparameterization, we will set the restriction that $alpha$ is strictly > 2, essentially asserting that the distribution of residence times belongs to a right-skewed class of distributions with finite mean and variance. We notate the first moment as $\mu$, and retain this parameter. For second moment, note that: 
 $$\tag{4} Var(\lambda) = \mu(\lambda)^2\frac{1}{\alpha-2}$$
 So, we define a new parameter $\phi = \frac{1}{\alpha-2}$. For interpretation, $\phi$ turns out to be equivalent to the coefficient of variation (CV) squared, and thus we consider $phi$ a variability or dispersion constant. Solving for the parameters and substituting, the integral transform in (3) is now: 
 $$\tag{5} \frac{\mu(\frac{1}{\phi}+1)}{\mu(\frac{1}{\phi}+1)+t}^{(\frac{1}{\phi}+2)}$$
@@ -43,29 +43,48 @@ The function in (6) can be further probed for theoretical insight by non-dimensi
 $$\tag{7} C(t) = C(0) \frac{\mu}{\mu+t}^2$$
 We non-dimensionalize 7 with the quantity $\tau = \frac{t}{\mu}$, where $\tau$ is thus a dimensionless time representing multiples of the mean of the residence time distribution, and we have: 
 $$\tag{8} C(t) = C(0) \frac{1}{1+\tau}^2$$
+From the other direction, we let $\phi \to 0$, and find that (6) is equivalent to the better known limit: 
+$$\tag{9} lim_{x \to \inf} \frac{\mu x}{\mu x + t}^{x + 1} = e^{-\frac{t}{\mu}} = e^{-\tau}$$
+which of course is equivalent to a first-order representation of turnover with a fixed mean residence time, and we nondimensionalize with $\tau$ again. 
+
+In Figure 1 below, we show the universal bounding curves: 
+```{r universal bounding curves, echo = F}
+
+maxVar <- function(x){(1/(1+x))^2}
+noVar <- function(x){exp(-x)}
 
 
-
-
-
-```{r}
-
-mu <- 4
-k <- 10
-
-
-resFunc2 <- function(mu=mu,k=k,t){
-  invK <- 1/k
-  left <- ((mu*(invK+1))/((mu*(invK+1))+t))^(invK+2); 
-}
-
-ggplot(data=data.frame(t=c(0,20)),aes(x=t)) + 
-  stat_function(fun=resFunc2,args=list(mu=mu,k=k)) + 
-  stat_function(fun=resFunc2,args=list(mu=mu,k=k*0.1),color="blue")
-
-
-
+ggplot(data=data.frame(x=c(0,5)),aes(x=x)) + 
+  stat_function(fun=maxVar) + 
+  stat_function(fun=noVar) + 
+  theme_bw(base_size = 15) + 
+  ylab("Fraction remaining") + 
+  xlab("Dimensionless time") + 
+  geom_text(data = NULL, x = 1, y = 0.45, label = "exp(-tau)") + 
+  geom_text(data = NULL, x = 0.5, y = 0.25, label = "(1/(1+tau))^2") 
 
 
 ```
+*Fig 1: Fraction of carbon remaining in a given class given heterogeneity in turnover as a function of dimensionless time, for the case of maximal variance (1/(1+tau))^2, or of no variance, which is the limiting case of exp(-tau).*
+
+As is evident in figure 1, while holding the mean of the residence time distribution constant, we can generate qualitatively distinct behavior by varying the amount of dispersion ($\phi$). Greater dispersion leads to the behavior that the initial loss or turnover is much steeper, but in the long run, a larger amount remains in the system. We thus gain insight into the behavior that has frequently motivated fitting of two or three pool models to incubation or turnover data, where the interpretation is that there are distinct "labile" versus "recalcitrant" pools. **Instead, variability in a unimodal distribution of residence times can itself lead to this behavior**. Invocation of distinct labile and recalcitrant pools may thus be doubly an error. However, the possible turnover dynamics are very well-constrained by these two curves in dimensionless (hence universal) space. 
+
+# Discussion and Conclusions 
+
+Regardless of the source of heterogeneity in a pool or cohort of SOC, the equation in (6) represents the fraction of C remaining at some arbitrary time $t$ given only that a sufficiently large cohort of carbon atoms are involved, and that the distribution of residence times is unimodal and right-skewed. We have shown through analysis of dimensionless forms that the range of behaviors is bounded by the two curves in Figure 1. Moreover, variability in residence times *per se* can generate the kind of qualitative behavior associated normally with distinctions between labile/recalcitrant pools. The equation in (6) could readily be fit to turnover or gas efflux data from incubation or isotope pulse-chase experiments to estimate the parameters. An open question is: how long does data need to be collected to adeuqately constrain $\mu$ and $\phi$, since those parameters in turn govern the long-term service? 
+
+If instead a process-based model such as the PROMISE model in Waring et al. (2020) gives us a distribution over residence times, we can easily compute the service of *avoided greenhouse forcing*, by taking the integral of (6) over time. 
+
+$$\tag{6} C_{avoided}(t) = C(0)\mu(\frac{\mu(\frac{1}{\phi}+1)}{\mu(\frac{1}{\phi}+1)+t})^{(\frac{1}{\phi}+1)}$$
+
+
+This reduces the computational and logistical burden of experimental and modeling work to only that sufficient to characterize the distribution over residence times, or perhaps a sum over a set of distribution of residence times (one for each class of molecules). From there, our mathematical framework presented here has analytically solved the scaling problem. 
+
+
+
+
+
+
+
+
 
