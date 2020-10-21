@@ -10,7 +10,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
+library(ggplot2); library(cowplot)
+
 ```
 
 # Background 
@@ -30,14 +31,14 @@ $$\int{C\frac{\beta^\alpha}{\Gamma(\alpha)}\lambda^{-\alpha-1}e^{-\frac{\beta}{\
 
 Fortunately, this integral has a very simple analytical solution, dropping the cohort constant "C":
 $$(\frac{\beta}{\beta+t})^\alpha$$
-We reparameterize this solution because, while simple, the parameters of the inverse-gamma distribution $\beta$ and $alpha$ do not necessarily have easy intuition. However, we can translate into a parameterization with a mean $\mu$ and a dispersion constant $k$, and rewrite the integral transform in (3). To do this, we first note that the first moment (mean) of an inverse gamma is given by $\frac{\beta}{\alpha-1}$, while the second moment (variance) is $\frac{\beta^2}{(\alpha-1)^2(\alpha-2)}$. The first moment is only defined when $alpha$>1, and the second moment only when $alpha$>2. Thus, for our reparameterization, we will set the restriction that $alpha$ is strictly > 2, essentially asserting that the distribution of residence times belongs to a right-skewed class of distributions with finite mean and variance. We notate the first moment as $\mu$, and retain this parameter. For second moment, note that: 
+We reparameterize this solution because, while simple, the parameters of the inverse-gamma distribution $\beta$ and $alpha$ do not necessarily have easy intuition. However, we can translate into a parameterization with a mean $\mu$ and a dispersion constant $\phi$, and rewrite the integral transform in (3). To do this, we first note that the first moment (mean) of an inverse gamma is given by $\frac{\beta}{\alpha-1}$, while the second moment (variance) is $\frac{\beta^2}{(\alpha-1)^2(\alpha-2)}$. The first moment is only defined when $alpha$>1, and the second moment only when $alpha$>2. Thus, for our reparameterization, we will set the restriction that $alpha$ is strictly > 2, essentially asserting that the distribution of residence times belongs to a right-skewed class of distributions with finite mean and variance. We notate the first moment as $\mu$, and retain this parameter. For second moment, note that: 
 $$ Var(\lambda) = \mu(\lambda)^2\frac{1}{\alpha-2}$$
 So, we define a new parameter $\phi = \frac{1}{\alpha-2}$. For interpretation, $\phi$ turns out to be equivalent to the coefficient of variation (CV) squared, and thus we consider $phi$ a variability or dispersion constant. Solving for the parameters and substituting, the integral transform in (3) is now: 
 $$ \frac{\mu(\frac{1}{\phi}+1)}{\mu(\frac{1}{\phi}+1)+t}^{(\frac{1}{\phi}+2)}$$
 
 To be extremely clear, the amount of carbon from a given cohort of carbon atoms remaining at time $t$ is given by (5): 
 $$ C(t) = C(0)\frac{\mu(\frac{1}{\phi}+1)}{\mu(\frac{1}{\phi}+1)+t}^{(\frac{1}{\phi}+2)}$$
-Thus, given a time series of observations of turnover (e.g. from incubation experiments such as XXXX), we could estimate the relevant parameters governing the distribution of residence times $\mu$ and $\phi$ inversely by fitting to equation (6). Alternately, we can use forward simulation results from a suitable PBM that provides such a distribution (e.g. Waring et al. 2020), plug in the resulting parameters and use (6) to estimate scaled-up properties and services. 
+Thus, given a time series of observations of turnover (e.g. from incubation experiments such as Schaedel et al. 2020), we could estimate the relevant parameters governing the distribution of residence times $\mu$ and $\phi$ inversely by fitting to equation (6). Alternately, we can use forward simulation results from a suitable PBM that provides such a distribution (e.g. Waring et al. 2020), plug in the resulting parameters and use (6) to estimate scaled-up properties and services. 
 
 # Universal bounding curves 
 
@@ -50,7 +51,7 @@ $$ lim_{x \to \infty} \frac{\mu x}{\mu x + t}^{x + 1} = e^{-\frac{t}{\mu}} = e^{
 which of course is equivalent to a first-order representation of turnover with a fixed mean residence time, and we nondimensionalize with $\tau$ again. 
 
 In Figure 1 below, we show the universal bounding curves: 
-```{r universal bounding curves, echo = F}
+```{r Figure 1: universal bounding curves, echo = F}
 
 maxVar <- function(x){(1/(1+x))^2}
 noVar <- function(x){exp(-x)}
@@ -84,7 +85,7 @@ where $\mu$ is the mean of the residence time distribution. Equation (11) is iso
 $$ C_{avoided}(t) = C(0)\mu(1-(\frac{1}{1+\tau}))$$
 where $\tau$ is dimensionless time (multiples of $\mu$), resulting in Figure 2 below. 
 
-```{r service bounding curve, echo = F}
+```{r Figure 2: service bounding curve, echo = F}
 
 correction <- function(x){1-(1/(1+x))}
 ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
@@ -99,6 +100,42 @@ ggplot(data = data.frame(x=c(0,10)), aes(x)) +
 
 *Figure 2: Bounding curve for the maximal heterogeneity correction factor in estimating how the integral of avoided GHG forcing, the standard method of quantifying Global Warming Power, varies with the time horizon considered as a multiple of the mean of the residence time distribution.*
 
+For a much less extreme case, we take the avoided GWP where phi = 0.25, corresponding to a fair amount of heterogeneity/uncertainty, (CV = 50%), but entirely reasonable. The implied distribution over residence times for an arbitrary $\mu=1$ is plotted in Figure 3a, and the resulting discount factor in Figure 3b. Our new equation, after non-dimensionalization, is:
+$$ C_{avoided}(t) = C(0)\mu(1-(\frac{5}{5+\tau})^5)$$
+
+```{r Figure 3: Service case study when phi = 1, echo = F}
+
+# Gamma parameters 
+mu <- 1
+phi <- 0.25
+alpha <- 1/phi + 2
+beta <- mu*((1/phi)+1)
+#beta/(alpha-1) checking should = mu :) 
+
+p1 <- ggplot(data = data.frame(x=c(0,5)),aes(x)) + 
+  stat_function(fun = dgamma, args = list(shape=alpha,rate=beta)) +
+  geom_vline(aes(xintercept = mu),color="red", linetype = "dashed") + 
+  xlab("Residence times") +
+  ylab("Density") +
+  theme_bw(base_size=15)
+  
+
+correction2 <- function(x){1-((5/(5+x))^5)}
+p2 <- ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
+  stat_function(fun=correction2) + 
+  theme_bw(base_size=15) + 
+  ylab("Correction factor") + 
+  xlab("Dimensionless time (MRT multiples)") + 
+  scale_x_continuous(breaks = seq(1,10,1))
+
+plot_grid(p1,p2)
+
+```
+
+*Figure 3: Correction factor to the service implied by the mean of the residence time distribution, when phi = 0.25, i.e. CV = 25%*
+
+
+
 The key insight from our analysis is this: increasing heterogeneity in residence times, while holding the mean of the distribution constant, leads to a higher long-term storage, but yet a lower service evaluated in terms of the GWP. The bounding curve in Figure 2 shows the correction to the service provision for the case of maximal variation. However, in the limit of an infinite time horizon, the avoided GWP turns out to just be the initial cohort size multiplied by the mean of the residence time distribution. 
 
 Given its evident importance to service quantification, how are we to interpret the meaning of the parameter $\phi$? As usual in applications of probability theory, we can consider $\phi$ to reflect underlying biophysical heterogeneity. However, we could also simply impart an epistemic interpretation to $\phi$, as representing our **uncertainty** in residence times. In practice, with Bayesian inference we would work with a posterior distribution over $\phi$, capturing both epistemic and biophysical cases. In both cases, we should think about $\phi$, and the correction factor it induces (e.g. in Figure 2), as a sort of a "risk discount" in the provision of GWP service. Under high variability/uncertainty, the service estimate deviates - as it should - from the mean field estimate given by $C(0)\mu$, especially in the short term.
@@ -108,6 +145,9 @@ Given its evident importance to service quantification, how are we to interpret 
 This reduces the computational and logistical burden of experimental and modeling work to only that sufficient to characterize the distribution over residence times, or perhaps a sum over a set of distribution of residence times (one for each class of molecules). Equation (6) is readily fit to empirical data, and thus to estimate the relevant parameters we have defined as $\mu$ and $\phi$. From there, our mathematical framework presented here has analytically solved the scaling problem, and demonstrates clearly how heterogeneity in turnover impacts both the expected long-term dynamics and the quantification of ecosystem service provision. Happily, this behavior has particularly elegant mathematical form, and its limiting cases have been presented in figures 1 and 2. Finally, we have derived an analytical expression (equation 10), that provides a "risk discount" for the impact of variability/uncertainty in the provision of climate change mitigation by soil carbons sequestration, when we use avoided GWP as our basis. 
 
 
+```{r}
+
+```
 
 
 

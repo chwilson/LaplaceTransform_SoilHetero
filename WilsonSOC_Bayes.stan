@@ -18,7 +18,7 @@ parameters {
 model {
   
     mu ~ normal(0,100);
-    phi ~ exponential(0.01); 
+    phi ~ exponential(1); 
     
   for(i in 1:N){
   

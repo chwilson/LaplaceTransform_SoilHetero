@@ -1,5 +1,7 @@
 library(SoilR)
 
+
+
 totalC_t0 <- 7.7;         # not included in data, so hard code here
 t0 <- 0;
 N_t <- 25;                # calculated by inspection
@@ -25,13 +27,14 @@ plot(plot_data);
 plot(seq(1,N_t-3,1),totalC_t0-eCO2mean[1:22])
 
 # Installing Stan 
-#install.packages("rstan", dependencies = TRUE)
+install.packages("rstan", dependencies = TRUE)
 
 ### Troubleshooting on Windows machine: 
 file.rename("~/.R/Makevars.win", "~/.R/Makevars.win.bak")
-
 M <- file.path(Sys.getenv("HOME"), ".R", ifelse(.Platform$OS.type == "windows", "Makevars.win", "Makevars"))
 file.edit(M)
+
+
 
 # Loading Stan 
 library(rstan)
@@ -39,7 +42,7 @@ options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
 
-stan_dat <- list(N = N_t, y = (10*totalC_t0-eCO2mean)/(10*totalC_t0),
+stan_dat <- list(N = N_t, y = (totalC_t0-eCO2mean)/(totalC_t0),
                  time = ts)
 
 Wilson1 <- stan(file = "WilsonSOC_Bayes.stan", data = stan_dat, chains = 4, iter = 500)
@@ -55,14 +58,14 @@ wfunc <- function(x,mu=mu,phi=phi){
   return(((mu*((1/phi)+1))/(mu*((1/phi)+1) + x))^((1/phi)+2))
 }
 
-plot_fit <- data.frame(time = ts, y = (10*totalC_t0-eCO2mean)/(10*totalC_t0))
+plot_fit <- data.frame(time = ts, y = (totalC_t0-eCO2mean)/(totalC_t0))
 ggplot() + 
   geom_point(data = plot_fit, aes(x=time,y=y)) + 
-  stat_function(data = data.frame(x=plot_fit$time),fun=wfunc, args = list(mu=344,phi=0.14)) +
-  stat_function(data = data.frame(x=plot_fit$time),fun=function(x){exp(-(1/357)*x)},color="red") 
+  stat_function(data = data.frame(x=plot_fit$time),fun=wfunc, args = list(mu=15.6,phi=0.06)) +
+  stat_function(data = data.frame(x=plot_fit$time),fun=function(x){exp(-(1/15.6)*x)},color="red") 
   
 # So, in these data, we are approaching the first order or one pool model. This implies that heterogeneity 
 # within a single pool is not sufficient to describe these data. Instead, we would want two coarser classes. 
 # An example of hypothetico-deductive inference...
 
-
+sqrt(0.25)
