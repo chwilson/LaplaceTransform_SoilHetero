@@ -3,8 +3,8 @@ title: "Universal Curves to Represent Heterogeneity in Soil Carbon Residence Tim
 author: "Chris H Wilson"
 date: "10/19/2020"
 output:
-  word_document: default
   html_document: default
+  word_document: default
 ---
 
 
@@ -71,7 +71,7 @@ ggplot(data=data.frame(x=c(0,5)),aes(x=x)) +
 
 *Fig 1: Fraction of carbon remaining in a given class given heterogeneity in turnover as a function of dimensionless time, for the case of maximal variance (1/(1+tau))^2, or of no variance, which is the limiting case of exp(-tau).*
 
-As is evident in figure 1, while holding the mean of the residence time distribution constant, we can generate qualitatively distinct behavior by varying the amount of dispersion ($\phi$). Greater dispersion leads to the behavior that the initial loss or turnover is much steeper, but in the long run, a larger amount remains in the system. We thus gain insight into the behavior that has frequently motivated fitting of two or three pool models to incubation or turnover data, where the interpretation is that there are distinct "labile" versus "recalcitrant" pools. **Instead, variability in a unimodal distribution of residence times can itself lead to this behavior**. Invocation of distinct labile and recalcitrant pools may thus be doubly an error. However, the possible turnover dynamics are very well-constrained by these two curves in dimensionless (hence universal) space. 
+As is evident in figure 1, while holding the mean of the residence time distribution constant, we can generate qualitatively distinct behavior by varying the amount of dispersion ($\phi$). Greater dispersion leads to the behavior that the initial loss or turnover is much steeper, but in the long run, a larger amount remains in the system. We thus gain insight into the behavior that has frequently motivated fitting of two or three pool models to incubation or turnover data, where the interpretation is that there are distinct "labile" versus "recalcitrant" pools. *Instead, variability in a unimodal distribution of residence times can itself lead to this behavior*. However, the possible turnover dynamics are very well-constrained by these two curves in dimensionless (hence universal) space. In general, when fitting multi-pool models to incubation data, we recommend comparing model fit to that obtained by fitting equation (6), which may in some cases act as a more parsimonious explanation. **Conversely, by deduction, if our equation does not provide a good fit to the data, this itself constitutes ipso facto evidence of multiple qualitatively distinct pools of carbon at work.**
 
 # Discussion and Application to Ecosystem Service Quantification 
 
@@ -83,31 +83,43 @@ Remarkably, in the limit as $t \to \infty$, the ratio on the RHS goes to 0, and 
 $$ C_{avoided}(t) = C(0)\mu $$
 where $\mu$ is the mean of the residence time distribution. Equation (11) is isomorphic to the solution for equilibrium carbon stocks under first order decomposition, if we were to interpret $C(0)$ as a continuous input, rather than a single cohort, thus demonstrating continuity between our framework and equilibrial analysis. Ironically, given an infinite time horizon, the impact of SOC heterogeneity washes out and essentially the service estimation only requires robust estimation of the first moment (mean). For finite time horizons, we need the correction term and the full equation in (10), and thus the variability/dispersion parameter $\phi$ enters again. To generate a universal bounding curve we once again take the limit as $\phi \to \infty$, and non-dimensionalize the ratio, resulting in: 
 $$ C_{avoided}(t) = C(0)\mu(1-(\frac{1}{1+\tau}))$$
-where $\tau$ is dimensionless time (multiples of $\mu$), resulting in Figure 2 below. 
+where $\tau$ is dimensionless time (multiples of $\mu$). We take the ratio of this service curve to that implied by the case of no-heterogeneity $1-e^{-\tau}$, to derive the discount factor associated with maximal heterogeneity, resulting in Figure 2 below. 
 
 ```{r Figure 2: service bounding curve, echo = F}
 
 correction <- function(x){1-(1/(1+x))}
-ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
+corr_diff <- function(x){(1-(1/(1+x)))/(1-exp(-x))}
+
+
+p1 <- ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
   stat_function(fun=correction) + 
   theme_bw(base_size=15) + 
   ylab("Correction factor") + 
-  xlab("Dimensionless time (MRT multiples)") + 
+  xlab("Dimensionless time (mu(RT) multiples)") + 
   scale_x_continuous(breaks = seq(1,10,1))
 
+p2 <- ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
+  stat_function(fun=corr_diff) + 
+  theme_bw(base_size=15) + 
+  ylab("Difference in correction factors") + 
+  xlab("Dimensionless time (mu(RT) multiples)") + 
+  scale_x_continuous(breaks = seq(1,10,1))
+
+#plot_grid(p1,p2)
+print(p2)
 
 ```
 
 *Figure 2: Bounding curve for the maximal heterogeneity correction factor in estimating how the integral of avoided GHG forcing, the standard method of quantifying Global Warming Power, varies with the time horizon considered as a multiple of the mean of the residence time distribution.*
 
-For a much less extreme case, we take the avoided GWP where phi = 0.25, corresponding to a fair amount of heterogeneity/uncertainty, (CV = 50%), but entirely reasonable. The implied distribution over residence times for an arbitrary $\mu=1$ is plotted in Figure 3a, and the resulting discount factor in Figure 3b. Our new equation, after non-dimensionalization, is:
-$$ C_{avoided}(t) = C(0)\mu(1-(\frac{5}{5+\tau})^5)$$
+For a much less extreme case, we take the avoided GWP where phi = 1, corresponding to a fair amount of heterogeneity/uncertainty, (CV = 100%), but entirely reasonable. The implied distribution over residence times for an arbitrary $\mu=1$ is plotted in Figure 3a, and the resulting discount factor in Figure 3b. Our new equation, after non-dimensionalization, is:
+$$ C_{avoided}(t) = C(0)\mu(1-(\frac{2}{2+\tau})^2)$$
 
-```{r Figure 3: Service case study when phi = 1, echo = F}
+```{r Figure 3: Service case study when phi is 1, echo = F}
 
 # Gamma parameters 
 mu <- 1
-phi <- 0.25
+phi <- 1
 alpha <- 1/phi + 2
 beta <- mu*((1/phi)+1)
 #beta/(alpha-1) checking should = mu :) 
@@ -120,34 +132,40 @@ p1 <- ggplot(data = data.frame(x=c(0,5)),aes(x)) +
   theme_bw(base_size=15)
   
 
-correction2 <- function(x){1-((5/(5+x))^5)}
+correction2 <- function(x){1-((2/(2+x))^2)}
+exp_corr2 <- function(x){1-exp(-x)}
+diff_corr <- function(x) {(1-((2/(2+x))^2))/(1-exp(-x))}
+
 p2 <- ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
   stat_function(fun=correction2) + 
+  stat_function(fun = exp_corr2, color = "red") + 
   theme_bw(base_size=15) + 
   ylab("Correction factor") + 
-  xlab("Dimensionless time (MRT multiples)") + 
+  xlab("Dimensionless time (mu(RT) multiples)") + 
   scale_x_continuous(breaks = seq(1,10,1))
 
-plot_grid(p1,p2)
+
+p3 <- ggplot(data = data.frame(x=c(0,10)), aes(x)) + 
+  stat_function(fun=diff_corr) + 
+  theme_bw(base_size=15) + 
+  ylab("Proportional discount") + 
+  xlab("Dimensionless time (mu(RT) multiples)") + 
+  scale_x_continuous(breaks = seq(1,10,1))
+
+plot_grid(p1,p2,p3)
 
 ```
 
-*Figure 3: Correction factor to the service implied by the mean of the residence time distribution, when phi = 0.25, i.e. CV = 25%*
+*Figure 3: Correction factor to the service implied by the mean of the residence time distribution, when phi = 1, i.e. CV = 100%. The implied distribution over residence times is in panel (a). b) time course of the GWP based ecosystem service quantification. c) ratio of the service provided under heterogeneity to that provided given no heterogeneity around the same mean of the residence time distribution*
 
 
+The key insight from our analysis is this: increasing heterogeneity in residence times, while holding the mean of the distribution constant, leads to a higher long-term storage, but yet a lower service evaluated in terms of the GWP. The bounding curve in Figure 2 shows the correction to the service provision for the case of maximal variation. However, in the limit of an infinite time horizon, the avoided GWP turns out to just be the initial cohort size multiplied by the mean of the residence time distribution, and so the service provision returns to unity. We note that the correction to our finite time service represents a sort of "risk discount factor", and that this curve is unimodal. In other words, the "risk discount" is maximal when the relevant time horizon is around 1-3 multiples of the mean of the residence time distribution, but starts at 0 and returns to 0 given infinite time.  
 
-The key insight from our analysis is this: increasing heterogeneity in residence times, while holding the mean of the distribution constant, leads to a higher long-term storage, but yet a lower service evaluated in terms of the GWP. The bounding curve in Figure 2 shows the correction to the service provision for the case of maximal variation. However, in the limit of an infinite time horizon, the avoided GWP turns out to just be the initial cohort size multiplied by the mean of the residence time distribution. 
-
-Given its evident importance to service quantification, how are we to interpret the meaning of the parameter $\phi$? As usual in applications of probability theory, we can consider $\phi$ to reflect underlying biophysical heterogeneity. However, we could also simply impart an epistemic interpretation to $\phi$, as representing our **uncertainty** in residence times. In practice, with Bayesian inference we would work with a posterior distribution over $\phi$, capturing both epistemic and biophysical cases. In both cases, we should think about $\phi$, and the correction factor it induces (e.g. in Figure 2), as a sort of a "risk discount" in the provision of GWP service. Under high variability/uncertainty, the service estimate deviates - as it should - from the mean field estimate given by $C(0)\mu$, especially in the short term.
-
+Given its evident importance to service quantification, how are we to interpret the meaning of the parameter $\phi$? As usual in applications of probability theory, we can consider $\phi$ to reflect underlying biophysical heterogeneity. However, we could also simply impart an epistemic interpretation to $\phi$, as representing our **uncertainty** in residence times. In practice, with Bayesian inference we would work with a posterior distribution over $\phi$, capturing both epistemic and biophysical cases. In both cases, we should think about $\phi$, and the correction factor it induces (e.g. in Figure 2), as a sort of a "risk discount" in the provision of GWP service. Under high variability/uncertainty, the service estimate deviates - as it should - from the mean field estimate given by $C(0)\mu$, especially in the range of 1-3 multiples of the mean. Although this correction is important to consider, we are also encouraged by the fact that we are never more than 25% from the service implied by the mean. 
 
 # Conclusions 
-This reduces the computational and logistical burden of experimental and modeling work to only that sufficient to characterize the distribution over residence times, or perhaps a sum over a set of distribution of residence times (one for each class of molecules). Equation (6) is readily fit to empirical data, and thus to estimate the relevant parameters we have defined as $\mu$ and $\phi$. From there, our mathematical framework presented here has analytically solved the scaling problem, and demonstrates clearly how heterogeneity in turnover impacts both the expected long-term dynamics and the quantification of ecosystem service provision. Happily, this behavior has particularly elegant mathematical form, and its limiting cases have been presented in figures 1 and 2. Finally, we have derived an analytical expression (equation 10), that provides a "risk discount" for the impact of variability/uncertainty in the provision of climate change mitigation by soil carbons sequestration, when we use avoided GWP as our basis. 
+This reduces the computational and logistical burden of experimental and modeling work to only that sufficient to characterize the distribution over residence times, or perhaps a sum over a set of distribution of residence times (one for each class of molecules). Equation (6) is readily fit to empirical data, and thus to estimate the relevant parameters we have defined as $\mu$ and $\phi$. From there, our mathematical framework presented here has analytically solved the scaling problem, and demonstrates clearly how heterogeneity in turnover impacts both the expected long-term dynamics and the quantification of ecosystem service provision. Happily, this behavior has particularly elegant mathematical form, and its limiting cases have been presented in figures 1-3. Finally, we have derived an analytical expression (equation 10), that provides a "risk discount" for the impact of variability/uncertainty in the provision of climate change mitigation by soil carbons sequestration, when we use avoided GWP as our basis, and we illustrated the proportional discount factor in Figure 3. 
 
-
-```{r}
-
-```
 
 
 
