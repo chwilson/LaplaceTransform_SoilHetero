@@ -68,4 +68,6 @@ ggplot() +
 # within a single pool is not sufficient to describe these data. Instead, we would want two coarser classes. 
 # An example of hypothetico-deductive inference...
 
-sqrt(0.25)
+
+110/125
+0.85*175
